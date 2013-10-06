@@ -1,6 +1,6 @@
 # cmake file
 
-project(eyetracker_top)
+project(v4l2w_top)
 
 cmake_minimum_required(VERSION 2.6)
 
@@ -11,53 +11,41 @@ if(TS_ANDROID_NDK_TOOLCHAIN)
    include("android.in.cmake")
 endif(TS_ANDROID_NDK_TOOLCHAIN)
 
-SET(ENABLE_DEBUG OFF CACHE BOOL "enable debug support")
-SET(ENABLE_PROFILING OFF CACHE BOOL "enable profiling support by gprof")
-SET(ENABLE_COVERAGE OFF CACHE BOOL "enable coverage support by gcov")
-SET(OPT_LEVEL 3 CACHE STRING "C compiler optimize level")
-SET(DEBUGLOG OFF CACHE BOOL "enable log")
+if (NOT CMAKE_BUILD_TYPE)
+ set(CMAKE_BUILD_TYPE Debug)
+endif (NOT CMAKE_BUILD_TYPE)
+set(ENABLE_COVERAGE OFF CACHE BOOL "enable coverage support by gcov")
+
+message(STATUS "Build Type: " ${CMAKE_BUILD_TYPE})
 
 # for Dictionary binary
 if (ARM)
 SET(OBJCOPY_TERGET -O elf32-littlearm -B arm)
 else(ARM)
- if ($ENV{MACHTYPE} MATCHES "64")
+ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
  SET(OBJCOPY_TERGET -O elf64-x86-64 -B i386)
- else ($ENV{MACHTYPE} MATCHES "64")
- SET(OBJCOPY_TERGET -O elf32-$ENV{MACHTYPE} -B i386)
- endif ($ENV{MACHTYPE} MATCHES "64")
-#SET(OBJCOPY_TERGET -O elf32-i386 -B i386)
+ else (CMAKE_SIZEOF_VOID_P EQUAL 8)
+ SET(OBJCOPY_TERGET -O elf32-i386 -B i386)
+ endif (CMAKE_SIZEOF_VOID_P EQUAL 8)
 endif(ARM)
 
-# Optimize level: default 2
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O${OPT_LEVEL}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O${OPT_LEVEL}")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg -g -msse2")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -g -msse2")
-
-# Profiling?
-if(ENABLE_PROFILING)
-  message(STATUS "-pg option is added for gprof")
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg -g")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -g")
-endif()
+# BUILD_TYPE
+if (UNIX)
+  set(CMAKE_C_FLAGS_RELEASE   "-O3 -DNDEBUG")
+  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+  set(CMAKE_C_FLAGS_DEBUG     "-O2 -g -pg")
+  set(CMAKE_CXX_FLAGS_DEBUG   "-O2 -g -pg")
+  set(CMAKE_C_FLAGS           "-msse2")
+  set(CMAKE_CXX_FLAGS         "-msse2")
+endif(UNIX)
 
 # Coverage
 if(ENABLE_COVERAGE)
-  SET(ENABLE_DEBUG "Y")
+  set(CMAKE_BUILD_TYPE Debug FORCE)
   message(STATUS "coverage options are added")
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
-endif() # ENABLE_COVERAGE
-
-# Debug ?
-if(ENABLE_DEBUG)
-  message(STATUS "-g option is added for debugging")
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-endif()
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")
+endif(ENABLE_COVERAGE)
 
 add_subdirectory(library)
 add_subdirectory(test)
